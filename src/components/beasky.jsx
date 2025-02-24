@@ -1,28 +1,34 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-const fetchData = async () => {
-  return await fetch("https://jsonplaceholder.typicode.com/posts").then((res) =>
+const fetchData = () => {
+  return fetch("https://jsonplaceholder.typicode.com/posts").then((res) =>
     res.json()
   );
 };
 
 const Beasky = () => {
+  const queryClient = useQueryClient();
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["users"],
+    queryKey: ["posts"],
     queryFn: fetchData,
   });
 
-
-const { mutate, isPending, isError, isSuccess } = useMutation({
-  mutationFn: async (newPost) =>
-    fetch("https://jsonplaceholder.typicode.com/posts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+  const { mutate, isPending, isError, isSuccess } = useMutation({
+    mutationFn: (newPost) =>
+      fetch("https://jsonplaceholder.typicode.com/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newPost),
+      }),
+      onSuccess: async (newPostResponse) => {
+        const newPost = await newPostResponse.json(); // Parse response to JSON
+        queryClient.setQueryData(['posts'], (oldPosts) => [...oldPosts, newPost]);
       },
-      body: JSON.stringify(newPost),
-    }),
-});
+      
+  });
 
   if (isLoading) <h2>Loading...</h2>;
   if (isError) <h2>{error.message}</h2>;
@@ -44,6 +50,7 @@ const { mutate, isPending, isError, isSuccess } = useMutation({
       </button>
       {data?.map((item) => (
         <div key={item.id}>
+          <h2>ID {item.id}</h2>
           <h3>{item.title}</h3>
           <p>{item.body}</p>
         </div>
